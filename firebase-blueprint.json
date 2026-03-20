@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information including role and VIP status.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "role": { "type": "string", "enum": ["guest", "user", "admin"], "description": "The user's role." },
+        "isVip": { "type": "boolean", "description": "Whether the user has an active VIP status." },
+        "favorites": { "type": "array", "items": { "type": "number" }, "description": "An array of favorite channel IDs." },
+        "playlists": { "type": "array", "items": { "type": "object" }, "description": "An array of user playlists." }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "A payment record for VIP access or advertisements.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The UID of the user who made the payment." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "nome": { "type": "string", "description": "The name of the payer." },
+        "plano": { "type": "string", "description": "The plan name (e.g., VIP, Banner, Video)." },
+        "valor": { "type": "number", "description": "The payment amount." },
+        "currency": { "type": "string", "enum": ["AOA", "USD", "EUR"], "description": "The currency of the payment." },
+        "status": { "type": "string", "enum": ["pending", "pago", "rejected"], "description": "The current status of the payment." },
+        "data": { "type": "string", "format": "date-time", "description": "The date the payment was requested." },
+        "confirmedAt": { "type": "string", "format": "date-time", "description": "The date the payment was confirmed." }
+      },
+      "required": ["uid", "nome", "plano", "valor", "status", "data"]
+    },
+    "Broadcast": {
+      "title": "Broadcast",
+      "description": "An active live stream session.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The UID of the admin broadcasting." },
+        "title": { "type": "string", "description": "The title of the broadcast." },
+        "viewerCount": { "type": "number", "description": "The current number of viewers." },
+        "isLive": { "type": "boolean", "description": "Whether the broadcast is currently live." },
+        "startedAt": { "type": "string", "format": "date-time", "description": "When the broadcast started." }
+      },
+      "required": ["uid", "title", "isLive", "startedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message sent in the broadcast chat.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The UID of the user who sent the message." },
+        "userName": { "type": "string", "description": "The display name of the user." },
+        "message": { "type": "string", "description": "The message content." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the message was sent." }
+      },
+      "required": ["uid", "userName", "message", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "/pagamentos/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payment records for manual confirmation."
+    },
+    "/broadcasts/{broadcastId}": {
+      "schema": "Broadcast",
+      "description": "Active live streams."
+    },
+    "/broadcasts/{broadcastId}/chat/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages for a specific broadcast."
+    }
+  }
+}

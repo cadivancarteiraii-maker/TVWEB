@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #256af4;
+  --color-background-light: #f5f6f8;
+  --color-background-dark: #101622;
+  --font-display: "Spline Sans", sans-serif;
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(37, 106, 244, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+body {
+  min-height: max(884px, 100dvh);
+}

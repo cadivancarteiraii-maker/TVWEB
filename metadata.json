@@ -1,0 +1,5 @@
+{
+  "name": "TV WEB",
+  "description": "A live radio and TV web player application.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

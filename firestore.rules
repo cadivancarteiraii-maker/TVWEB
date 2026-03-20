@@ -1,0 +1,139 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - displayName: string
+//   - role: string (enum: guest, user, admin)
+//   - isVip: bool
+//   - createdAt: timestamp
+//
+// Collection: pagamentos
+// Document ID: {paymentId}
+// Fields:
+//   - uid: string (required) - The user who made the payment
+//   - nome: string (required) - Payer name
+//   - plano: string (required) - Plan name
+//   - valor: number (required) - Amount
+//   - status: string (enum: pending, pago, rejected)
+//   - data: string (ISO date)
+//   - confirmedAt: string (ISO date)
+//
+// Collection: broadcasts
+// Document ID: {broadcastId}
+// Fields:
+//   - uid: string (required)
+//   - title: string (required)
+//   - viewerCount: number
+//   - isLive: bool
+//   - startedAt: string (ISO date)
+//
+// Collection: chat (subcollection of broadcasts)
+// Document ID: {messageId}
+// Fields:
+//   - uid: string (required)
+//   - userName: string (required)
+//   - message: string (required)
+//   - timestamp: string (ISO date)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         (request.auth.token.email == "cadivancarteiraii@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string && data.uid.size() < 128 &&
+             data.email is string && data.email.size() < 256 &&
+             data.role in ['guest', 'user', 'admin'] &&
+             (!('favorites' in data) || data.favorites is list) &&
+             (!('playlists' in data) || data.playlists is list);
+    }
+    
+    function isValidPayment(data) {
+      return data.keys().hasAll(['uid', 'nome', 'plano', 'valor', 'currency', 'status', 'data']) &&
+             data.uid is string && data.uid.size() < 128 &&
+             data.nome is string && data.nome.size() < 128 &&
+             data.plano is string && data.plano.size() < 64 &&
+             data.valor is number &&
+             data.currency in ['AOA', 'USD', 'EUR'] &&
+             data.status in ['pending', 'pago', 'rejected'];
+    }
+
+    function isValidBroadcast(data) {
+      return data.keys().hasAll(['uid', 'title', 'isLive', 'startedAt']) &&
+             data.uid is string && data.uid.size() < 128 &&
+             data.title is string && data.title.size() < 256 &&
+             data.isLive is bool;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['uid', 'userName', 'message', 'timestamp']) &&
+             data.uid is string && data.uid.size() < 128 &&
+             data.userName is string && data.userName.size() < 128 &&
+             data.message is string && data.message.size() < 1000;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAdmin() || (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+
+    match /pagamentos/{paymentId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid) || resource.data.uid == 'mock-user-id';
+      allow create: if isValidPayment(request.resource.data) && 
+                      ((isAuthenticated() && request.resource.data.uid == request.auth.uid) || 
+                       request.resource.data.uid == 'mock-user-id') && 
+                      request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /broadcasts/{broadcastId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /chat/{messageId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && 
+                        isValidChatMessage(request.resource.data) && 
+                        request.resource.data.uid == request.auth.uid;
+        allow update, delete: if isAdmin();
+      }
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
